@@ -582,3 +582,4 @@ npm run test:unit
 ```
 
 Hasil pada 28 Oktober 2026: **19 test lulus, 0 gagal** di Node.js 25.2.1. Workflow [unit-tests.yml](.github/workflows/unit-tests.yml) menjalankan perintah yang sama di Node.js 22 untuk setiap push dan pull request. Pengujian ini tidak mengklaim telah memeriksa route API, integrasi PostgreSQL, kamera/GPS perangkat, maupun seluruh hak akses role.
+SonarQube Cloud menjalankan analisis statis otomatis setiap ada commit baru di branch main.
