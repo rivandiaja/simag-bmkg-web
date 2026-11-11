@@ -14,31 +14,28 @@ concurrency:
 
 jobs:
   analysis:
-    # Automatic Analysis is active. Enable CI only after disabling it in Cloud.
+    # Enable this job after switching the Cloud project to CI-based analysis.
     if: github.ref == 'refs/heads/main' && vars.SONAR_CI_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SONAR_HOST_URL: https://sonarcloud.io
-      SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
-      SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
+      SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY || 'rivandiaja_simag-bmkg-web' }}
+      SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION || 'rivandiaja' }}
     steps:
       - name: Checkout full history
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Check SonarQube Cloud configuration
+      - name: Check SonarQube Cloud token
         shell: bash
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
-          missing=0
-          for key in SONAR_TOKEN SONAR_PROJECT_KEY SONAR_ORGANIZATION; do
-            if [ -z "${!key}" ]; then
-              echo "::error::Configure $key in repository Settings > Secrets and variables > Actions. See docs/testing/SONARQUBE.md."
-              missing=1
-            fi
-          done
-          exit "$missing"
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo '::error::Configure the SONAR_TOKEN repository secret. See docs/testing/SONARQUBE.md.'
+            exit 1
+          fi
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -46,21 +43,28 @@ jobs:
           cache: npm
       - name: Install dependencies without application lifecycle scripts
         run: npm ci --ignore-scripts
-      - name: Run existing unit tests
-        run: npm run test:unit
+      - name: Run unit tests and generate LCOV
+        run: |
+          npm run test:unit:coverage
+          test -s coverage/lcov.info
+
       - name: Analyze source and enforce Quality Gate
         uses: SonarSource/sonarqube-scan-action@v8.3.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >-
-            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
-            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+            -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ env.SONAR_ORGANIZATION }}
             -Dsonar.qualitygate.wait=true
             -Dsonar.qualitygate.timeout=300
-      - name: Save scanner task metadata
+      - name: Save scanner metadata and LCOV report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: sonarqube-task-${{ github.run_number }}
-          path: .scannerwork/report-task.txt
+          path: |
+            .scannerwork/report-task.txt
+            coverage/lcov.info
           if-no-files-found: ignore
           retention-days: 30
