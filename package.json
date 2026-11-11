@@ -15,7 +15,10 @@
 		"db:push": "prisma db push",
 		"db:seed": "prisma db seed",
 		"db:studio": "prisma studio",
-		"db:generate": "prisma generate"
+		"db:generate": "prisma generate",
+		"sonar:up": "docker compose --env-file .env.sonar -f compose.sonarqube.yml up -d --wait sonarqube",
+		"sonar:scan": "docker compose --env-file .env.sonar -f compose.sonarqube.yml run --rm scanner",
+		"sonar:down": "docker compose --env-file .env.sonar -f compose.sonarqube.yml down"
 	},
 	"prisma": {
 		"seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
