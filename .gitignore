@@ -80,3 +80,7 @@ update-status.js
 !docs/
 !docs/**
 !docs/**/*.md
+# SonarQube analysis artifacts and safe environment template
+/.scannerwork/
+/.sonar/
+!.env.sonar.example
